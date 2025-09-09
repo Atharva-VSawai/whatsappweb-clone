@@ -1,6 +1,6 @@
 import {io} from 'socket.io-client'
 import useUserStore from '../store/useUserStore';
-import { Error } from 'mongoose';
+
 
 
 let socket = null
@@ -27,7 +27,7 @@ export const initializeSocket = () => {
     })
 
     socket.on("connect_error",(error)=>{
-        console.log("socket connection error",Error)
+        console.log("socket connection error",error)
     })
 
     //disconnected event

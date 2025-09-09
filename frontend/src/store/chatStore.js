@@ -38,8 +38,7 @@ export const useChatStore = create((set, get) => ({
     socket.on("message_send", (message) => {
       set((state) => ({
         messages: state.messages.map((msg) =>
-          msg._id === message._id ? { ...msg, ...message } : msg
-        ),
+          msg._id === message._id ? {...msg} : msg)
       }));
     });
 
@@ -47,8 +46,7 @@ export const useChatStore = create((set, get) => ({
     socket.on("message_status_update", ({ messageId, messageStatus }) => {
       set((state) => ({
         messages: state.messages.map((msg) =>
-          msg._id === messageId ? { ...msg, messageStatus } : msg
-        ),
+          msg._id === messageId ? { ...msg, messageStatus } : msg)
       }));
     });
 
@@ -56,15 +54,14 @@ export const useChatStore = create((set, get) => ({
     socket.on("reaction_update", ({ messageId, reactions }) => {
       set((state) => ({
         messages: state.messages.map((msg) =>
-          msg._id === messageId ? { ...msg, reactions } : msg
-        ),
+          msg._id === messageId ? { ...msg, reactions } : msg)
       }));
     });
 
     // handle remove message from local state
     socket.on("message_deleted", ({ deletedMessageId }) => {
       set((state) => ({
-        messages: state.messages.filter((msg) => msg._id !== deletedMessageId),
+        messages: state.messages.filter((msg) => msg._id !== deletedMessageId)
       }));
     });
 
@@ -102,8 +99,8 @@ export const useChatStore = create((set, get) => ({
     });
 
     // emit status check for all users in conversation list
-    const { conversations, currentUser } = get();
-    if (conversations?.length > 0 && currentUser) {
+    const { conversations,currentUser  } = get();
+    if (conversations?.length > 0) {
       conversations.forEach((conv) => {
         const otherUser = conv.participants.find(
           (p) => p._id !== currentUser._id
@@ -113,9 +110,9 @@ export const useChatStore = create((set, get) => ({
           socket.emit("get_user_status", otherUser._id, (status) => {
             set((state) => {
               const newOnlineUsers = new Map(state.onlineUsers);
-              newOnlineUsers.set(otherUser._id, {
-                isOnline: status.isOnline,
-                lastSeen: status.lastSeen,
+              newOnlineUsers.set(state.userId, {
+                isOnline:status.isOnline,
+                lastSeen:status.lastSeen,
               });
               return { onlineUsers: newOnlineUsers };
             });
@@ -130,8 +127,8 @@ export const useChatStore = create((set, get) => ({
   fetchConversations: async () => {
     set({ loading: true, error: null });
     try {
-      const { data } = await axiosInstance.get("chats/conversations");
-      set({ conversations: data, loading: false });
+      const { data } = await axiosInstance.get("/chats/conversations");
+      set({ conversations:data,loading: false });
 
       get().initSocketListeners();
       return data;
@@ -145,7 +142,7 @@ export const useChatStore = create((set, get) => ({
   },
 
   //fetch message for conversation
-  fetchMessage: async (conversationId) => {
+  fetchMessages: async (conversationId) => {
     if (!conversationId) return;
     set({ loading: true, error: null });
     try {
@@ -162,7 +159,7 @@ export const useChatStore = create((set, get) => ({
       });
 
       //Mark Unread message as read
-      const {maskMessagesAsRead} = get();
+      const { maskMessagesAsRead } = get();
       maskMessagesAsRead();
 
       return messageArray;
@@ -176,7 +173,69 @@ export const useChatStore = create((set, get) => ({
   },
 
   //send message in real time
-  sendMessage: async (formData) => {},
+  sendMessage: async (formData) => {
+    const senderId = formData.get("senderId");
+    const receiverId = formData.get("receiverId");
+    const media = formData.get("media");
+    const content = formData.get("content");
+    const messageStatus = formData.get("messageStatus");
+
+    const socket = getSocket();
+
+    const { conversations } = get();
+    let conversationId = null;
+    if (conversations?.data?.length > 0) {
+      const conversation = conversations.data.find(
+        (conv) =>
+          conv.participants.some((p) => p._id === senderId) &&
+          conv.participants.some((p) => p._id === receiverId)
+      );
+      if (conversation) {
+        conversationId = conversation._id;
+        set({ currentConversation: conversationId });
+      }
+    }
+
+    //temp message before actual response
+    const tempId = `temp-${Date.now()}`;
+    const optimisticMessage = {
+      _id:tempId,
+      sender:{_id:senderId},
+      receiver:{_id:receiverId},
+      conversation: conversationId,
+      imageOrVideoUrl: media && typeof media !== 'string' ? URL.createObjectURL(media) : null,
+      content:content,
+      contentType:media ? media.type.startsWith("image") ? "image" : "video" :"text",
+      createdAt : new Date().toISOString(),
+      messageStatus,
+    };
+
+    set((state) => ({
+      messages: [...state.messages, optimisticMessage]
+    }));
+
+    try {
+      const {data} = await axiosInstance.post("/chats/send-message",formData,
+        {headers:{"Content-Type": "multipart/form-data"}}
+      );
+      const messageData = data.data || data;
+
+      //replace optimistic messages with real one
+      set((state) => ({
+        messages:state.messages.map((msg) => 
+        msg._id === tempId ? messageData : msg)
+      }));
+      return messageData;
+    } catch (error) {
+        console.log("Error Sending Message",error);
+        set((state) => ({
+          messages:state.messages.map((msg) => 
+          msg._id === tempId ? {...msg, messageStatus: "failed"}: msg),
+          error:error?.response?.data?.message || error?.message,
+        }))
+        throw error;
+    }
+  },
 
   receiveMessage: (message) => {
     if (!message) return;
@@ -191,9 +250,8 @@ export const useChatStore = create((set, get) => ({
         messages: [...state.messages, message],
       }));
 
-
       //automatically mark as read
-      if(message.receiver?._id === currentUser?._id){
+      if (message.receiver?._id === currentUser?._id) {
         get().maskMessagesAsRead();
       }
     }
@@ -228,13 +286,7 @@ export const useChatStore = create((set, get) => ({
     const { messages, currentUser } = get();
 
     if (!messages.length || !currentUser) return;
-    const unreadIds = messages
-      .filter(
-        (msg) =>
-          msg.messageStatus !== "read" && msg.receiver?._id === currentUser?._id
-      )
-      .map((msg) => msg._id)
-      .filter(Boolean);
+    const unreadIds = messages.filter((msg) => msg.messageStatus !== "read" && msg.receiver?._id === currentUser?._id).map((msg) => msg._id).filter(Boolean);
 
     if (unreadIds.length === 0) return;
 
@@ -316,10 +368,7 @@ export const useChatStore = create((set, get) => ({
   isUserTyping: (userId) => {
     const { typingUsers, currentConversation } = get();
     if (
-      !currentConversation ||
-      !typingUsers.has(currentConversation) ||
-      !userId
-    ) {
+      !currentConversation || !typingUsers.has(currentConversation) || !userId){
       return false;
     }
     return typingUsers.get(currentConversation).has(userId);
