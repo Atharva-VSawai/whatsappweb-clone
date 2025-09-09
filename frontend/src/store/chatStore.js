@@ -100,7 +100,7 @@ export const useChatStore = create((set, get) => ({
 
     // emit status check for all users in conversation list
     const { conversations,currentUser  } = get();
-    if (conversations?.length > 0) {
+    if (conversations?.length > 0 && currentUser) {
       conversations.forEach((conv) => {
         const otherUser = conv.participants.find(
           (p) => p._id !== currentUser._id
@@ -295,7 +295,7 @@ export const useChatStore = create((set, get) => ({
         messageIds: unreadIds,
       });
 
-      console.log("message mark as read", data);
+     
       set((state) => ({
         messages: state.messages.map((msg) =>
           unreadIds.includes(msg._id) ? { ...msg, messageStatus: "read" } : msg

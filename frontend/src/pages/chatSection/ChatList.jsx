@@ -73,7 +73,7 @@ const ChatList = ({ contacts }) => {
                   ? "bg-gray-700"
                   : "hover:bg-gray-800"
                 : selectedContact?._id === contact?._id
-                ? "bg-gray-200"
+                ? "bg-gray-50"
                 : "hover:bg-gray-100"
             }`}
           >
