@@ -25,7 +25,7 @@ export const useChatStore = create((set, get) => ({
     socket.off("message_error");
     socket.off("message_deleted");
     socket.off("message_status_update");
-    socket.off("reaction_update");
+    socket.off("reaction_updated");
 
     // listen for incoming messages
     socket.on("receive_message", (message) => {
@@ -51,7 +51,7 @@ export const useChatStore = create((set, get) => ({
     });
 
     // handle reaction on message
-    socket.on("reaction_update", ({ messageId, reactions }) => {
+    socket.on("reaction_updated", ({ messageId, reactions }) => {
       set((state) => ({
         messages: state.messages.map((msg) =>
           msg._id === messageId ? { ...msg, reactions } : msg)
@@ -242,7 +242,7 @@ export const useChatStore = create((set, get) => ({
 
     const { currentConversation, currentUser, messages } = get();
 
-    const messageExits = message.some((msg) => msg._id === message._id);
+    const messageExits = messages.some((msg) => msg._id === message._id);
     if (messageExits) return;
 
     if (message.conversation === currentConversation) {
