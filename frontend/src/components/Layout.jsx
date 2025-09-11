@@ -72,13 +72,13 @@ const Layout = ({
       </div>
       {isMobile && <Sidebar />}
       {isThemeDialogOpen && (
-        <div className="fixed insert-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
           <div
             className={`${
               theme === "dark"
                 ? "bg-[#202c33] text-white"
                 : "bg-white text-black"
-            }p-6 rounded-lg shadow-lg max-w-sm w-full`}
+            } p-6 rounded-lg shadow-lg max-w-sm w-full`}
           >
             <h2 className="text-2xl font-semibold mb-4">Choose a theme</h2>
             <div className="space-y-4">
@@ -96,7 +96,7 @@ const Layout = ({
               <label className="flex items-center space-x-3 cursor-pointer">
                 <input
                   type="radio"
-                  value="light"
+                  value="dark"
                   checked={theme === "dark"}
                   onChange={() => setTheme("dark")}
                   className="from-radio text-blue-600"
@@ -113,6 +113,7 @@ const Layout = ({
           </div>
         </div>
       )}
+
       {/* Status Preview */}
       {/* Status Preview */}
       {isStatusPreviewOpen && (
