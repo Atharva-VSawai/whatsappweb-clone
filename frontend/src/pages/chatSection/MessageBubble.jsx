@@ -1,6 +1,13 @@
 import React, { useRef, useState } from "react";
 import { format } from "date-fns";
-import { FaCheck, FaCheckDouble, FaSmile, FaPlus, FaRegCopy, FaTrash } from "react-icons/fa";
+import {
+  FaCheck,
+  FaCheckDouble,
+  FaSmile,
+  FaPlus,
+  FaRegCopy,
+  FaTrash,
+} from "react-icons/fa";
 import { HiDotsVertical } from "react-icons/hi";
 import useOutsideclick from "../../hooks/useOutSideclick";
 import EmojiPicker from "emoji-picker-react";
@@ -42,25 +49,41 @@ const MessageBubble = ({
     setShowReactions(false);
   };
 
-  useOutsideclick(emojiPickerRef, () => showEmojiPicker && setShowEmojiPicker(false));
-  useOutsideclick(reactionsMenuRef, () => showReactions && setShowReactions(false));
+  useOutsideclick(
+    emojiPickerRef,
+    () => showEmojiPicker && setShowEmojiPicker(false)
+  );
+  useOutsideclick(
+    reactionsMenuRef,
+    () => showReactions && setShowReactions(false)
+  );
   useOutsideclick(optionRef, () => showOptions && setShowOptions(false));
 
-  if (!message) return null;
+  if (message === 0) return;
 
   return (
     // 👇 parent wrapper ensures spacing below every message
     <div className={`chat ${bubbleClass} mb-8`}>
       <div className={`${bubbleContentClass} relative group`} ref={messageRef}>
         <div className="flex justify-center gap-2">
-          {message.contentType === "text" && (
-            <p>{message.content}</p>
-          )}
+          {message.contentType === "text" && <p>{message.content}</p>}
           {message.contentType === "image" && (
             <div>
               <img
                 src={message.imageOrVideoUrl}
                 alt="image-video"
+                className="rounded-lg max-w-xs"
+              />
+              <p className="mt-1">{message.content}</p>
+            </div>
+          )}
+
+          {message.contentType === "video" && (
+            <div>
+              <video
+                src={message.imageOrVideoUrl}
+                alt="image-video"
+                controls
                 className="rounded-lg max-w-xs"
               />
               <p className="mt-1">{message.content}</p>
@@ -74,8 +97,12 @@ const MessageBubble = ({
           {isUserMessage && (
             <>
               {message.messageStatus === "send" && <FaCheck size={12} />}
-              {message.messageStatus === "delivered" && <FaCheckDouble size={12} />}
-              {message.messageStatus === "read" && <FaCheckDouble size={12} className="text-blue-900" />}
+              {message.messageStatus === "delivered" && (
+                <FaCheckDouble size={12} />
+              )}
+              {message.messageStatus === "read" && (
+                <FaCheckDouble size={12} className="text-blue-900" />
+              )}
             </>
           )}
         </div>
@@ -84,7 +111,9 @@ const MessageBubble = ({
         <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
           <button
             onClick={() => setShowOptions((prev) => !prev)}
-            className={`p-1 rounded-full ${theme === "dark" ? "text-white" : "text-gray-800"}`}
+            className={`p-1 rounded-full ${
+              theme === "dark" ? "text-white" : "text-gray-800"
+            }`}
           >
             <HiDotsVertical size={18} />
           </button>
@@ -92,15 +121,23 @@ const MessageBubble = ({
 
         {/* reactions trigger */}
         <div
-          className={`absolute ${isUserMessage ? "-left-10" : "-right-10"} top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col gap-2`}
+          className={`absolute ${
+            isUserMessage ? "-left-10" : "-right-10"
+          } top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col gap-2`}
         >
           <button
             onClick={() => setShowReactions(!showReactions)}
             className={`p-2 rounded-full ${
-              theme === "dark" ? "bg-[#202c33] hover:bg-[#202c33]/80 " : "bg-white hover:bg-gray-100"
+              theme === "dark"
+                ? "bg-[#202c33] hover:bg-[#202c33]/80 "
+                : "bg-white hover:bg-gray-100"
             } shadow-lg`}
           >
-            <FaSmile className={`${theme === "dark" ? "text-gray-300" : "text-gray-600"}`} />
+            <FaSmile
+              className={`${
+                theme === "dark" ? "text-gray-300" : "text-gray-600"
+              }`}
+            />
           </button>
         </div>
 
@@ -108,7 +145,9 @@ const MessageBubble = ({
         {showReactions && (
           <div
             ref={reactionsMenuRef}
-            className={`absolute -top-8 ${isUserMessage ? "left-0" : "left-36"} transform -translate-x-1/2 flex items-center bg-[#202c33]/90 rounded-full px-2 py-1.5 gap-1 shadow-lg z-50`}
+            className={`absolute -top-8 ${
+              isUserMessage ? "left-0" : "left-36"
+            } transform -translate-x-1/2 flex items-center bg-[#202c33]/90 rounded-full px-2 py-1.5 gap-1 shadow-lg z-50`}
           >
             {quickReactions.map((emoji, index) => (
               <button
@@ -150,7 +189,9 @@ const MessageBubble = ({
         {/* message reactions display */}
         {message.reactions && message.reactions.length > 0 && (
           <div
-            className={`absolute -bottom-6 ${isUserMessage ? "right-2" : "left-2"} ${
+            className={`absolute -bottom-6 ${
+              isUserMessage ? "right-2" : "left-2"
+            } ${
               theme === "dark" ? "bg-[#2a3942]" : "bg-gray-200"
             } rounded-full px-2 py-0.5 shadow-md`}
           >
@@ -167,7 +208,9 @@ const MessageBubble = ({
           <div
             ref={optionRef}
             className={`absolute top-8 right-1 z-50 w-36 rounded-xl shadow-lg py-2 text-sm ${
-              theme === "dark" ? "bg-[#1d1f1f] text-white" : "bg-gray-100 text-black"
+              theme === "dark"
+                ? "bg-[#1d1f1f] text-white"
+                : "bg-gray-100 text-black"
             }`}
           >
             <button
