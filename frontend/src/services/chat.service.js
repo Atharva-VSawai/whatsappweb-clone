@@ -23,7 +23,7 @@ export const initializeSocket = () => {
 
     socket.on("connect", ()=>{
         console.log("socket connected",socket.id)
-        socket.emit("user_connected",user.id)
+        socket.emit("user_connected",user._id)
     })
 
     socket.on("connect_error",(error)=>{

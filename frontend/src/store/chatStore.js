@@ -38,7 +38,8 @@ export const useChatStore = create((set, get) => ({
     socket.on("message_send", (message) => {
       set((state) => ({
         messages: state.messages.map((msg) =>
-          msg._id === message._id ? {...msg} : msg)
+          msg._id === message._id ? { ...msg } : msg
+        ),
       }));
     });
 
@@ -46,22 +47,27 @@ export const useChatStore = create((set, get) => ({
     socket.on("message_status_update", ({ messageId, messageStatus }) => {
       set((state) => ({
         messages: state.messages.map((msg) =>
-          msg._id === messageId ? { ...msg, messageStatus } : msg)
+          msg._id === messageId ? { ...msg, messageStatus } : msg
+        ),
       }));
     });
 
     // handle reaction on message
+    // handle reaction on message
     socket.on("reaction_updated", ({ messageId, reactions }) => {
       set((state) => ({
         messages: state.messages.map((msg) =>
-          msg._id === messageId ? { ...msg, reactions } : msg)
+          msg._id === messageId
+            ? { ...msg, reactions: [...reactions] } // replace with fresh array
+            : msg
+        ),
       }));
     });
 
     // handle remove message from local state
     socket.on("message_deleted", ({ deletedMessageId }) => {
       set((state) => ({
-        messages: state.messages.filter((msg) => msg._id !== deletedMessageId)
+        messages: state.messages.filter((msg) => msg._id !== deletedMessageId),
       }));
     });
 
@@ -99,7 +105,7 @@ export const useChatStore = create((set, get) => ({
     });
 
     // emit status check for all users in conversation list
-    const { conversations,currentUser  } = get();
+    const { conversations, currentUser } = get();
     if (conversations?.length > 0 && currentUser) {
       conversations.forEach((conv) => {
         const otherUser = conv.participants.find(
@@ -111,8 +117,8 @@ export const useChatStore = create((set, get) => ({
             set((state) => {
               const newOnlineUsers = new Map(state.onlineUsers);
               newOnlineUsers.set(state.userId, {
-                isOnline:status.isOnline,
-                lastSeen:status.lastSeen,
+                isOnline: status.isOnline,
+                lastSeen: status.lastSeen,
               });
               return { onlineUsers: newOnlineUsers };
             });
@@ -128,7 +134,7 @@ export const useChatStore = create((set, get) => ({
     set({ loading: true, error: null });
     try {
       const { data } = await axiosInstance.get("/chats/conversations");
-      set({ conversations:data,loading: false });
+      set({ conversations: data, loading: false });
 
       get().initSocketListeners();
       return data;
@@ -199,41 +205,50 @@ export const useChatStore = create((set, get) => ({
     //temp message before actual response
     const tempId = `temp-${Date.now()}`;
     const optimisticMessage = {
-      _id:tempId,
-      sender:{_id:senderId},
-      receiver:{_id:receiverId},
+      _id: tempId,
+      sender: { _id: senderId },
+      receiver: { _id: receiverId },
       conversation: conversationId,
-      imageOrVideoUrl: media && typeof media !== 'string' ? URL.createObjectURL(media) : null,
-      content:content,
-      contentType:media ? media.type.startsWith("image") ? "image" : "video" :"text",
-      createdAt : new Date().toISOString(),
+      imageOrVideoUrl:
+        media && typeof media !== "string" ? URL.createObjectURL(media) : null,
+      content: content,
+      contentType: media
+        ? media.type.startsWith("image")
+          ? "image"
+          : "video"
+        : "text",
+      createdAt: new Date().toISOString(),
       messageStatus,
     };
 
     set((state) => ({
-      messages: [...state.messages, optimisticMessage]
+      messages: [...state.messages, optimisticMessage],
     }));
 
     try {
-      const {data} = await axiosInstance.post("/chats/send-message",formData,
-        {headers:{"Content-Type": "multipart/form-data"}}
+      const { data } = await axiosInstance.post(
+        "/chats/send-message",
+        formData,
+        { headers: { "Content-Type": "multipart/form-data" } }
       );
       const messageData = data.data || data;
 
       //replace optimistic messages with real one
       set((state) => ({
-        messages:state.messages.map((msg) => 
-        msg._id === tempId ? messageData : msg)
+        messages: state.messages.map((msg) =>
+          msg._id === tempId ? messageData : msg
+        ),
       }));
       return messageData;
     } catch (error) {
-        console.log("Error Sending Message",error);
-        set((state) => ({
-          messages:state.messages.map((msg) => 
-          msg._id === tempId ? {...msg, messageStatus: "failed"}: msg),
-          error:error?.response?.data?.message || error?.message,
-        }))
-        throw error;
+      console.log("Error Sending Message", error);
+      set((state) => ({
+        messages: state.messages.map((msg) =>
+          msg._id === tempId ? { ...msg, messageStatus: "failed" } : msg
+        ),
+        error: error?.response?.data?.message || error?.message,
+      }));
+      throw error;
     }
   },
 
@@ -286,7 +301,13 @@ export const useChatStore = create((set, get) => ({
     const { messages, currentUser } = get();
 
     if (!messages.length || !currentUser) return;
-    const unreadIds = messages.filter((msg) => msg.messageStatus !== "read" && msg.receiver?._id === currentUser?._id).map((msg) => msg._id).filter(Boolean);
+    const unreadIds = messages
+      .filter(
+        (msg) =>
+          msg.messageStatus !== "read" && msg.receiver?._id === currentUser?._id
+      )
+      .map((msg) => msg._id)
+      .filter(Boolean);
 
     if (unreadIds.length === 0) return;
 
@@ -295,7 +316,6 @@ export const useChatStore = create((set, get) => ({
         messageIds: unreadIds,
       });
 
-     
       set((state) => ({
         messages: state.messages.map((msg) =>
           unreadIds.includes(msg._id) ? { ...msg, messageStatus: "read" } : msg
@@ -368,7 +388,10 @@ export const useChatStore = create((set, get) => ({
   isUserTyping: (userId) => {
     const { typingUsers, currentConversation } = get();
     if (
-      !currentConversation || !typingUsers.has(currentConversation) || !userId){
+      !currentConversation ||
+      !typingUsers.has(currentConversation) ||
+      !userId
+    ) {
       return false;
     }
     return typingUsers.get(currentConversation).has(userId);
