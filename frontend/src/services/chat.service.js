@@ -39,12 +39,11 @@ export const initializeSocket = () => {
 }
 
 export const getSocket = () => {
-    if(socket){
-        return initializeSocket();
+    if (!socket) {
+        socket = initializeSocket();
     }
     return socket;
 }
-
 
 export const disconnectSocket = () => {
     if(socket){
