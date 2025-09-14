@@ -490,7 +490,7 @@ const Login = () => {
                   onChange={(e) => handleOtpChange(index, e.target.value)}
                   className={`w-12 h-12 text-center border ${
                     theme === "dark"
-                      ? "bg-gray-700 border-gray-600 text-white"
+                      ? "bg-gray-700 border-gray-600 text-gray-500"
                       : "bg-white border-gray-300"
                   }rounded-md focus:outline-none focus:ring-2 fpcus:-ring-green-500 ${
                     otpErrors.otp ? "border-red-500" : ""
